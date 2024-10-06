@@ -10,6 +10,14 @@ FFmpeg Xfade GUI is a user-friendly graphical interface for creating video trans
 - Adjustable transition duration
 - Option to use CPU or GPU for video processing
 
+## Screenshots
+
+![image](https://github.com/user-attachments/assets/b687c977-12d4-4471-8191-54aa13869fa5)
+
+![image](https://github.com/user-attachments/assets/ae324c96-cd11-43e3-a028-6c348443034b)
+
+![image](https://github.com/user-attachments/assets/c40d3921-909d-462d-b4e9-a360c2d48120)
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
