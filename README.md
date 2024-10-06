@@ -21,7 +21,7 @@
 ## Usage
 
 1. Run the application.
-2. Set the FFmpeg path in the application settings. Please download **ffmpeg.exe, ffprobe.exe** here if you don't have https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full.7z
+2. Set the FFmpeg path in the application settings. Please download **ffmpeg.exe, ffprobe.exe** if you don't have https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full.7z
 3. Add video files to the list.
 4. Choose a transition type and set the duration.
 5. Specify the output file name and location.
