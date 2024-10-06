@@ -102,7 +102,7 @@ class FFmpegWorker(QThread):
         if self.use_gpu:
             if self.gpu_type == 'NVIDIA':
                 ffmpeg_args.extend(['-c:v', 'h264_nvenc'])
-            elif self.gpu_type == 'AMD' or self.gpu_type == 'Radeon':
+            elif self.gpu_type == 'AMD' or self.gpu_type == 'RADEON':
                 ffmpeg_args.extend(['-c:v', 'h264_amf'])
             elif self.gpu_type == 'Intel':
                 ffmpeg_args.extend(['-c:v', 'h264_qsv'])
@@ -141,7 +141,7 @@ class XfadeGUI(QWidget):
                 if 'nvidia' in gpu_name:
                     return 'NVIDIA'
                 elif 'radeon' in gpu_name:
-                    return 'Radeon'
+                    return 'RADEON'
             
             # If no dedicated GPU is found, check for integrated GPU
             import platform
