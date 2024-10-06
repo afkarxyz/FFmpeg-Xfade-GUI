@@ -30,8 +30,3 @@
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Acknowledgments
-
-- FFmpeg for providing the powerful video processing capabilities
-- PyQt6 for the GUI framework
