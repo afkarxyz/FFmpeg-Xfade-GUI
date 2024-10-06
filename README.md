@@ -18,6 +18,15 @@ FFmpeg Xfade GUI is a user-friendly graphical interface for creating video trans
 
 ![image](https://github.com/user-attachments/assets/c40d3921-909d-462d-b4e9-a360c2d48120)
 
+## Usage
+
+1. Run the application.
+2. Set the FFmpeg path in the application settings. Please download **ffmpeg.exe, ffprobe.exe** here if you don't have https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full.7z
+3. Add video files to the list.
+4. Choose a transition type and set the duration.
+5. Specify the output file name and location.
+6. Click "Start (CPU)" or "Start (GPU)" to begin processing.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
