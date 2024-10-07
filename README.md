@@ -4,6 +4,8 @@
 
 **FFmpeg Xfade GUI** is a user-friendly graphical interface for creating video transitions using FFmpeg's xfade filter. This tool simplifies the process of combining multiple videos with smooth transitions, making it accessible to users who may not be comfortable with command-line operations.
 
+### [Download Here!](https://github.com/afkarxyz/FFmpeg-Xfade-GUI/releases/download/XfadeGUI/XfadeGUI.exe)
+
 ## Features
 
 - Easy-to-use interface for selecting and arranging video files
