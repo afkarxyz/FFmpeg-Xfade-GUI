@@ -8,11 +8,10 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                              QComboBox, QGridLayout, QScrollArea, QTabWidget, QAbstractItemView,
                              QSizePolicy, QSpacerItem)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize, QUrl
-from PyQt6.QtGui import QTextCursor, QMovie, QIcon, QDesktopServices
+from PyQt6.QtGui import QTextCursor, QMovie, QIcon, QDesktopServices, QDragEnterEvent, QDropEvent
 from PyQt6.QtWidgets import QGraphicsColorizeEffect
 
 def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
         base_path = sys._MEIPASS
     except Exception:
@@ -124,6 +123,64 @@ class FFmpegWorker(QThread):
         if process.returncode != 0:
             raise Exception("FFmpeg process failed")
 
+class DragDropListWidget(QListWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        if event.mimeData().hasUrls():
+            event.accept()
+        else:
+            super().dragEnterEvent(event)
+
+    def dropEvent(self, event: QDropEvent):
+        if event.mimeData().hasUrls():
+            event.setDropAction(Qt.DropAction.CopyAction)
+            event.accept()
+            for url in event.mimeData().urls():
+                file_path = url.toLocalFile()
+                if file_path.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+                    self.addItem(file_path)
+        else:
+            super().dropEvent(event)
+
+class VideosTab(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.initUI()
+
+    def initUI(self):
+        layout = QVBoxLayout()
+        self.video_list = DragDropListWidget()
+        self.video_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        layout.addWidget(self.video_list)
+        
+        btn_layout = QHBoxLayout()
+        self.add_btn = QPushButton('Add Videos')
+        self.add_btn.setFixedWidth(150)
+        self.remove_btn = QPushButton('Remove Selected')
+        self.remove_btn.setFixedWidth(150)
+        self.clear_btn = QPushButton('Clear All')
+        self.clear_btn.setFixedWidth(150)
+        
+        btn_layout.addStretch()
+        btn_layout.addWidget(self.add_btn)
+        btn_layout.addWidget(self.remove_btn)
+        btn_layout.addWidget(self.clear_btn)
+        btn_layout.addStretch()
+        
+        layout.addLayout(btn_layout)
+        self.setLayout(layout)
+
+    def remove_selected_videos(self):
+        for item in self.video_list.selectedItems():
+            self.video_list.takeItem(self.video_list.row(item))
+
+    def clear_videos(self):
+        self.video_list.clear()
+
 class XfadeGUI(QWidget):
     def __init__(self):
         super().__init__()
@@ -181,32 +238,11 @@ class XfadeGUI(QWidget):
         main_layout.addWidget(self.tab_widget)
 
         # Videos tab
-        videos_tab = QWidget()
-        videos_layout = QVBoxLayout()
-        self.video_list = QListWidget()
-        self.video_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-        videos_layout.addWidget(self.video_list)
-        
-        btn_layout = QHBoxLayout()
-        self.add_btn = QPushButton('Add Videos')
-        self.add_btn.setFixedWidth(150)
-        self.add_btn.clicked.connect(self.add_video)
-        self.remove_btn = QPushButton('Remove Selected')
-        self.remove_btn.setFixedWidth(150)
-        self.remove_btn.clicked.connect(self.remove_selected_videos)
-        self.clear_btn = QPushButton('Clear All')
-        self.clear_btn.setFixedWidth(150)
-        self.clear_btn.clicked.connect(self.clear_videos)
-        
-        btn_layout.addStretch()
-        btn_layout.addWidget(self.add_btn)
-        btn_layout.addWidget(self.remove_btn)
-        btn_layout.addWidget(self.clear_btn)
-        btn_layout.addStretch()
-        
-        videos_layout.addLayout(btn_layout)
-        videos_tab.setLayout(videos_layout)
-        self.tab_widget.addTab(videos_tab, "Videos")
+        self.videos_tab = VideosTab()
+        self.videos_tab.add_btn.clicked.connect(self.add_video)
+        self.videos_tab.remove_btn.clicked.connect(self.videos_tab.remove_selected_videos)
+        self.videos_tab.clear_btn.clicked.connect(self.videos_tab.clear_videos)
+        self.tab_widget.addTab(self.videos_tab, "Videos")
 
         # Transitions tab
         transition_tab = QWidget()
@@ -422,11 +458,7 @@ class XfadeGUI(QWidget):
 
     def add_video(self):
         files, _ = QFileDialog.getOpenFileNames(self, 'Select Video Files', '', 'Video Files (*.mp4 *.avi *.mov *.mkv)')
-        self.video_list.addItems(files)
-
-    def remove_video(self):
-        for item in self.video_list.selectedItems():
-            self.video_list.takeItem(self.video_list.row(item))
+        self.videos_tab.video_list.addItems(files)
 
     def browse_output(self):
         file, _ = QFileDialog.getSaveFileName(self, 'Save Output File', '', 'Video Files (*.mp4)')
@@ -441,15 +473,8 @@ class XfadeGUI(QWidget):
             counter += 1
         return f"{name}{ext}"
 
-    def clear_videos(self):
-        self.video_list.clear()
-
-    def remove_selected_videos(self):
-        for item in self.video_list.selectedItems():
-            self.video_list.takeItem(self.video_list.row(item))
-
     def process_videos(self, use_gpu=False):
-        segments = [self.video_list.item(i).text() for i in range(self.video_list.count())]
+        segments = [self.videos_tab.video_list.item(i).text() for i in range(self.videos_tab.video_list.count())]
         if len(segments) < 2:
             QMessageBox.warning(self, 'Warning', 'Please select at least two videos.')
             return
