@@ -30,7 +30,3 @@
 4. Choose a transition type and set the duration.
 5. Specify the output file name and location.
 6. Click "Start (CPU)" or "Start (GPU)" to begin processing.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
