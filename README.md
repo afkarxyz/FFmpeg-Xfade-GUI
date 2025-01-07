@@ -16,7 +16,7 @@
 
 ## Usage
 
-1. Click **Get FFmpeg** to download or **Set the FFmpeg path** if you already have it.
+1. Click **Get FFmpeg** to download or Set the FFmpeg path if you already have it.
 2. Add video files to the list.
 3. Choose a transition type and set the duration.
 4. Specify the output file name and location.
