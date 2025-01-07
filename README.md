@@ -4,7 +4,7 @@
 
 **FFmpeg Xfade GUI** is a user-friendly graphical interface for creating video transitions using FFmpeg's xfade filter. This tool simplifies the process of combining multiple videos with smooth transitions, making it accessible to users who may not be comfortable with command-line operations.
 
-### [Download](https://github.com/afkarxyz/FFmpeg-Xfade-GUI/releases/download/XfadeGUI/XfadeGUI.exe)
+### [Download](https://github.com/afkarxyz/FFmpeg-Xfade-GUI/releases/download/v1.1/XfadeGUI.exe)
 
 ## Features
 
@@ -14,19 +14,18 @@
 - Adjustable transition duration
 - Option to use CPU or GPU for video processing
 
-## Screenshots
-
-![image](https://github.com/user-attachments/assets/b687c977-12d4-4471-8191-54aa13869fa5)
-
-![image](https://github.com/user-attachments/assets/2a6596b3-ea70-4358-ba9d-40a4b7974d58)
-
-![image](https://github.com/user-attachments/assets/c40d3921-909d-462d-b4e9-a360c2d48120)
-
 ## Usage
 
-1. Run the application.
-2. Set the FFmpeg path in the application settings. Please download **ffmpeg.exe, ffprobe.exe** if you don't have https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full.7z
-3. Add video files to the list.
-4. Choose a transition type and set the duration.
-5. Specify the output file name and location.
-6. Click "Start (CPU)" or "Start (GPU)" to begin processing.
+1. Click **Get FFmpeg** to download or **Set the FFmpeg path** if you already have it.
+2. Add video files to the list.
+3. Choose a transition type and set the duration.
+4. Specify the output file name and location.
+5. Click "Start (CPU)" or "Start (GPU)" to begin processing.
+   
+## Screenshots
+
+![image](https://github.com/user-attachments/assets/0dafc744-f27d-46d2-a9e1-78a1bd62edc3)
+
+![image](https://github.com/user-attachments/assets/fb2e86f7-7164-43ff-a2a4-081d13c05596)
+
+![image](https://github.com/user-attachments/assets/bdeadbd4-03b9-414e-9483-64f9adfe926c)
