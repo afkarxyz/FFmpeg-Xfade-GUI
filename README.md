@@ -32,6 +32,8 @@
 
 ## TODO
 
+> The next feature update will be released once we reach over 100 downloads.
+
 - [x] Support for more file formats (v1.1)
 - [ ] Selecting more than one transition  
 - [ ] Randomizing transitions
