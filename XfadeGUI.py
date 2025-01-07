@@ -6,10 +6,11 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout,
                              QPushButton, QLineEdit, QLabel, QFileDialog, 
                              QListWidget, QMessageBox, QDoubleSpinBox, QTextEdit,
                              QComboBox, QGridLayout, QScrollArea, QTabWidget, QAbstractItemView,
-                             QSizePolicy, QSpacerItem)
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize, QUrl
-from PyQt6.QtGui import QTextCursor, QMovie, QIcon, QDesktopServices, QDragEnterEvent, QDropEvent
+                             QSizePolicy, QSpacerItem, QProgressBar)
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QSize, QUrl, QSettings
+from PyQt6.QtGui import QTextCursor, QMovie, QIcon, QDesktopServices, QDragEnterEvent, QDropEvent, QPainter
 from PyQt6.QtWidgets import QGraphicsColorizeEffect
+import requests
 
 def resource_path(relative_path):
     try:
@@ -18,6 +19,43 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+class FFmpegDownloader(QThread):
+    progress = pyqtSignal(str, int)
+    finished = pyqtSignal(bool, str)
+
+    def __init__(self, save_path):
+        super().__init__()
+        self.save_path = save_path
+        self.files = {
+            'ffmpeg.exe': 'https://github.com/afkarxyz/FFmpeg-Xfade-GUI/releases/download/XfadeGUI/ffmpeg.exe',
+            'ffprobe.exe': 'https://github.com/afkarxyz/FFmpeg-Xfade-GUI/releases/download/XfadeGUI/ffprobe.exe'
+        }
+
+    def run(self):
+        try:
+            bin_path = os.path.join(self.save_path, 'FFmpeg', 'bin')
+            os.makedirs(bin_path, exist_ok=True)
+
+            for filename, url in self.files.items():
+                response = requests.get(url, stream=True)
+                total_size = int(response.headers.get('content-length', 0))
+                file_path = os.path.join(bin_path, filename)
+                
+                with open(file_path, 'wb') as f:
+                    if total_size == 0:
+                        f.write(response.content)
+                    else:
+                        downloaded = 0
+                        for data in response.iter_content(chunk_size=4096):
+                            downloaded += len(data)
+                            f.write(data)
+                            progress = int((downloaded / total_size) * 100)
+                            self.progress.emit(filename, progress)
+
+            self.finished.emit(True, f"FFmpeg files downloaded successfully to {bin_path}")
+        except Exception as e:
+            self.finished.emit(False, str(e))
+            
 class FFmpegWorker(QThread):
     finished = pyqtSignal(bool, str)
     progress = pyqtSignal(str)
@@ -139,12 +177,50 @@ class DragDropListWidget(QListWidget):
         if event.mimeData().hasUrls():
             event.setDropAction(Qt.DropAction.CopyAction)
             event.accept()
+            video_extensions = (
+                '.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v', 
+                '.mpg', '.mpeg', '.m2v', '.m2ts', '.mts', '.ts', '.vob', '.3gp',
+                '.3g2', '.f4v', '.asf', '.rmvb', '.rm', '.ogv', '.mxf', '.dv',
+                '.divx', '.xvid', '.mpv', '.m2p', '.mp2', '.mpeg2', '.ogm'
+            )
             for url in event.mimeData().urls():
                 file_path = url.toLocalFile()
-                if file_path.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
+                if file_path.lower().endswith(video_extensions):
                     self.addItem(file_path)
         else:
             super().dropEvent(event)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self.count() == 0:
+            painter = QPainter(self.viewport())
+            painter.save()
+            col = self.palette().placeholderText().color()
+            painter.setPen(col)
+            fm = self.fontMetrics()
+            elided_text = fm.elidedText(
+                "Drag & Drop Video Files", 
+                Qt.TextElideMode.ElideRight, 
+                self.viewport().width()
+            )
+            painter.drawText(self.viewport().rect(), Qt.AlignmentFlag.AlignCenter, elided_text)
+            painter.restore()
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self.count() == 0:
+            painter = QPainter(self.viewport())
+            painter.save()
+            col = self.palette().placeholderText().color()
+            painter.setPen(col)
+            fm = self.fontMetrics()
+            elided_text = fm.elidedText(
+                "Drag & Drop Video Files", 
+                Qt.TextElideMode.ElideRight, 
+                self.viewport().width()
+            )
+            painter.drawText(self.viewport().rect(), Qt.AlignmentFlag.AlignCenter, elided_text)
+            painter.restore()
 
 class VideosTab(QWidget):
     def __init__(self, parent=None):
@@ -159,10 +235,13 @@ class VideosTab(QWidget):
         
         btn_layout = QHBoxLayout()
         self.add_btn = QPushButton('Add Videos')
+        self.add_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.add_btn.setFixedWidth(150)
         self.remove_btn = QPushButton('Remove Selected')
+        self.remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.remove_btn.setFixedWidth(150)
-        self.clear_btn = QPushButton('Clear All')
+        self.clear_btn = QPushButton('Clear')
+        self.clear_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.clear_btn.setFixedWidth(150)
         
         btn_layout.addStretch()
@@ -184,6 +263,7 @@ class VideosTab(QWidget):
 class XfadeGUI(QWidget):
     def __init__(self):
         super().__init__()
+        self.settings = QSettings('afkarxyz', 'FFmpeg Xfade GUI')
         self.gpu_type = self.detect_gpu()
         self.transition_labels = {}
         self.transition_movies = {}
@@ -200,7 +280,6 @@ class XfadeGUI(QWidget):
                 elif 'radeon' in gpu_name:
                     return 'RADEON'
             
-            # If no dedicated GPU is found, check for integrated GPU
             import platform
             if platform.system() == 'Windows':
                 import wmi
@@ -216,11 +295,11 @@ class XfadeGUI(QWidget):
     def initUI(self):
         self.setWindowTitle('FFmpeg Xfade GUI')
         self.setFixedWidth(650)
-        self.setFixedHeight(364)
+        self.setFixedHeight(365)
         self.setWindowIcon(QIcon(resource_path(os.path.join('assets', 'FFmpeg.svg'))))
         main_layout = QVBoxLayout()
         
-        # FFmpeg path selection
+        ffmpeg_container = QVBoxLayout()
         ffmpeg_layout = QHBoxLayout()
         ffmpeg_label = QLabel('FFmpeg Path:')
         ffmpeg_label.setFixedWidth(100)
@@ -228,29 +307,39 @@ class XfadeGUI(QWidget):
         self.ffmpeg_path = QLineEdit()
         self.ffmpeg_path.setText(self.load_ffmpeg_path())
         self.ffmpeg_browse = QPushButton('Browse')
+        self.ffmpeg_browse.setCursor(Qt.CursorShape.PointingHandCursor)
         self.ffmpeg_browse.clicked.connect(self.browse_ffmpeg)
+        self.get_ffmpeg_btn = QPushButton('Get FFmpeg')
+        self.get_ffmpeg_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.get_ffmpeg_btn.setFixedWidth(100)
+        self.get_ffmpeg_btn.clicked.connect(self.download_ffmpeg)
         ffmpeg_layout.addWidget(self.ffmpeg_path)
         ffmpeg_layout.addWidget(self.ffmpeg_browse)
-        main_layout.addLayout(ffmpeg_layout)
+        ffmpeg_layout.addWidget(self.get_ffmpeg_btn)
+        ffmpeg_container.addLayout(ffmpeg_layout)
 
-        # Create tab widget
+        self.download_progress = QProgressBar()
+        self.download_progress.hide()
+        ffmpeg_container.addWidget(self.download_progress)
+
+        main_layout.addLayout(ffmpeg_container)
+
         self.tab_widget = QTabWidget()
         main_layout.addWidget(self.tab_widget)
 
-        # Videos tab
         self.videos_tab = VideosTab()
         self.videos_tab.add_btn.clicked.connect(self.add_video)
         self.videos_tab.remove_btn.clicked.connect(self.videos_tab.remove_selected_videos)
         self.videos_tab.clear_btn.clicked.connect(self.videos_tab.clear_videos)
         self.tab_widget.addTab(self.videos_tab, "Videos")
 
-        # Transitions tab
         transition_tab = QWidget()
         transition_layout = QVBoxLayout()
         
         transition_options_layout = QHBoxLayout()
         transition_options_layout.addWidget(QLabel('Type:'))
         self.transition_type = QComboBox()
+        self.transition_type.setCursor(Qt.CursorShape.PointingHandCursor)
         transition_types = [
             "circleclose", "circlecrop", "circleopen", "coverdown", "coverleft", "coverright", "coverup",
             "diagbl", "diagbr", "diagtl", "diagtr", "dissolve", "distance", "fade", "fadeblack", "fadegrays",
@@ -270,12 +359,11 @@ class XfadeGUI(QWidget):
         self.transition_duration = QDoubleSpinBox()
         self.transition_duration.setRange(0.1, 5.0)
         self.transition_duration.setSingleStep(0.1)
-        self.transition_duration.setValue(0.5)  # Default to 0.5 seconds
+        self.transition_duration.setValue(0.5)
         transition_options_layout.addWidget(self.transition_duration)
         
         transition_layout.addLayout(transition_options_layout)
 
-        # Scrollable gallery
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         gallery_widget = QWidget()
@@ -289,7 +377,6 @@ class XfadeGUI(QWidget):
         transition_tab.setLayout(transition_layout)
         self.tab_widget.addTab(transition_tab, "Transitions")
 
-        # Process tab
         process_tab = QWidget()
         process_layout = QVBoxLayout()
         
@@ -298,17 +385,27 @@ class XfadeGUI(QWidget):
         output_layout.addWidget(output_label)
         self.output_file = QLineEdit()
         self.output_file.setText('output.mp4')
+        
         self.output_browse = QPushButton('Browse')
+        self.output_browse.setCursor(Qt.CursorShape.PointingHandCursor)
         self.output_browse.clicked.connect(self.browse_output)
+        
+        self.output_open = QPushButton('Open')
+        self.output_open.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.output_open.clicked.connect(self.open_output_directory)
+        
         output_layout.addWidget(self.output_file)
         output_layout.addWidget(self.output_browse)
+        output_layout.addWidget(self.output_open)
         process_layout.addLayout(output_layout)
 
         start_btn_layout = QHBoxLayout()
         self.process_cpu_btn = QPushButton('Start (CPU)')
+        self.process_cpu_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.process_cpu_btn.setFixedWidth(180)
         self.process_cpu_btn.clicked.connect(lambda: self.process_videos(use_gpu=False))
         self.process_gpu_btn = QPushButton(f'Start ({self.gpu_type})')
+        self.process_gpu_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.process_gpu_btn.setFixedWidth(180)
         self.process_gpu_btn.clicked.connect(lambda: self.process_videos(use_gpu=True))
         start_btn_layout.addStretch()
@@ -324,20 +421,19 @@ class XfadeGUI(QWidget):
         process_tab.setLayout(process_layout)
         self.tab_widget.addTab(process_tab, "Process")
 
-        # About tab
         about_tab = QWidget()
         about_layout = QVBoxLayout()
         about_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         about_layout.setSpacing(10)
 
-        title_label = QLabel("About FFmpeg Xfade GUI")
-        title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #888;")
+        title_label = QLabel("FFmpeg Xfade GUI")
+        title_label.setStyleSheet("font-size: 18px; font-weight: bold; color: palette(text);")
         about_layout.addWidget(title_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         sections = [
-            ("Please report any issues or suggestions on the repository.", "https://github.com/afkarxyz/FFmpeg-Xfade-GUI"),
-            ("Visit our YouTube channel for informative videos.", "https://www.youtube.com/channel/UCLPfgkXWjm0qK479Nr1PqBg"),
-            ("Learn more about FFmpeg Xfade.", "https://trac.ffmpeg.org/wiki/Xfade")
+            ("Check for Updates", "https://github.com/afkarxyz/FFmpeg-Xfade-GUI/releases"),
+            ("Report an Issue", "https://github.com/afkarxyz/FFmpeg-Xfade-GUI/issues"),
+            ("FFmpeg Xfade", "https://trac.ffmpeg.org/wiki/Xfade")
         ]
 
         for title, url in sections:
@@ -351,16 +447,20 @@ class XfadeGUI(QWidget):
             section_layout.addWidget(label)
 
             button = QPushButton("Click Here!")
+            button.setFixedWidth(150)
             button.setStyleSheet("""
                 QPushButton {
-                    background-color: #2c2c2c;
-                    color: white;
-                    border: 1px solid #3f3f3f;
-                    padding: 5px 10px;
-                    border-radius: 3px;
+                    background-color: palette(button);
+                    color: palette(button-text);
+                    border: 1px solid palette(mid);
+                    padding: 6px;
+                    border-radius: 15px;
                 }
                 QPushButton:hover {
-                    background-color: #3f3f3f;
+                    background-color: palette(light);
+                }
+                QPushButton:pressed {
+                    background-color: palette(midlight);
                 }
             """)
             button.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -373,8 +473,8 @@ class XfadeGUI(QWidget):
                 spacer = QSpacerItem(20, 10, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
                 about_layout.addItem(spacer)
 
-        footer_label = QLabel("FFmpeg Xfade GUI v1.0 October 2024 | Developed with ❤️ by afkarxyz")
-        footer_label.setStyleSheet("font-size: 11px; color: #888;")
+        footer_label = QLabel("v1.1 January 2025 | FFmpeg Xfade GUI")
+        footer_label.setStyleSheet("font-size: 11px; color: palette(text);")
         about_layout.addWidget(footer_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         about_tab.setLayout(about_layout)
@@ -414,7 +514,6 @@ class XfadeGUI(QWidget):
             layout.addWidget(movie_label, i // 4, i % 4)
             self.transition_labels[transition] = movie_label
 
-        # Highlight the default transition
         self.highlight_selected_transition("fade")
 
     def create_transition_handler(self, transition):
@@ -439,16 +538,43 @@ class XfadeGUI(QWidget):
 
     def remove_grayscale_effect(self, label):
         label.setGraphicsEffect(None)
+        
+    def download_ffmpeg(self):
+        save_path = os.path.dirname(os.path.abspath(__file__))
+        self.downloader = FFmpegDownloader(save_path)
+        self.downloader.progress.connect(self.update_download_progress)
+        self.downloader.finished.connect(self.on_download_finished)
+        
+        self.download_progress.show()
+        self.download_progress.setValue(0)
+        self.get_ffmpeg_btn.setEnabled(False)
+        self.get_ffmpeg_btn.setText('Downloading...')
+        
+        self.downloader.start()
+
+    def update_download_progress(self, filename, progress):
+        self.download_progress.setValue(progress)
+        self.download_progress.setFormat(f'Downloading {filename}: %p%')
+
+    def on_download_finished(self, success, message):
+        self.get_ffmpeg_btn.setEnabled(True)
+        self.get_ffmpeg_btn.setText('Get FFmpeg')
+        self.download_progress.hide()
+
+        if success:
+            ffmpeg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'FFmpeg', 'bin')
+            self.ffmpeg_path.setText(ffmpeg_path)
+            self.save_ffmpeg_path(ffmpeg_path)
+            QMessageBox.information(self, 'Success', message)
+        else:
+            QMessageBox.critical(self, 'Error', f'Download failed: {message}')
 
     def load_ffmpeg_path(self):
-        if os.path.exists('XfadeGUI.ini'):
-            with open('XfadeGUI.ini', 'r') as f:
-                return f.read().strip()
-        return ''
+        return self.settings.value('ffmpeg_path', '', str)
 
     def save_ffmpeg_path(self, path):
-        with open('XfadeGUI.ini', 'w') as f:
-            f.write(path)
+        self.settings.setValue('ffmpeg_path', path)
+        self.settings.sync()
 
     def browse_ffmpeg(self):
         directory = QFileDialog.getExistingDirectory(self, "Select FFmpeg Directory")
@@ -457,12 +583,28 @@ class XfadeGUI(QWidget):
             self.save_ffmpeg_path(directory)
 
     def add_video(self):
-        files, _ = QFileDialog.getOpenFileNames(self, 'Select Video Files', '', 'Video Files (*.mp4 *.avi *.mov *.mkv)')
+        video_formats = "Video Files ("
+        extensions = [
+            "*.mp4", "*.avi", "*.mov", "*.mkv", "*.wmv", "*.flv", "*.webm", 
+            "*.m4v", "*.mpg", "*.mpeg", "*.m2v", "*.m2ts", "*.mts", "*.ts", 
+            "*.vob", "*.3gp", "*.3g2", "*.f4v", "*.asf", "*.rmvb", "*.rm", 
+            "*.ogv", "*.mxf", "*.dv", "*.divx", "*.xvid", "*.mpv", "*.m2p", 
+            "*.mp2", "*.mpeg2", "*.ogm"
+        ]
+        video_formats += " ".join(extensions) + ")"
+        
+        files, _ = QFileDialog.getOpenFileNames(
+            self, 
+            'Select Video Files', 
+            '', 
+            video_formats
+        )
         self.videos_tab.video_list.addItems(files)
 
     def browse_output(self):
         file, _ = QFileDialog.getSaveFileName(self, 'Save Output File', '', 'Video Files (*.mp4)')
         if file:
+            file = file.replace('\\', '/')
             self.output_file.setText(file)
 
     def get_unique_output_name(self, base_name):
@@ -484,6 +626,9 @@ class XfadeGUI(QWidget):
             QMessageBox.warning(self, 'Warning', 'Please specify an output file.')
             return
         
+        first_video_dir = os.path.dirname(segments[0]).replace('\\', '/')
+        
+        output_file = os.path.join(first_video_dir, os.path.basename(output_file)).replace('\\', '/')
         output_file = self.get_unique_output_name(output_file)
         self.output_file.setText(output_file)
 
@@ -508,6 +653,15 @@ class XfadeGUI(QWidget):
             self.process_gpu_btn.setText(f'Processing ({self.gpu_type})...')
         else:
             self.process_cpu_btn.setText('Processing...')
+
+    def open_output_directory(self):
+        output_path = self.output_file.text()
+        if output_path:
+            dir_path = os.path.dirname(output_path).replace('\\', '/')
+            if os.path.exists(dir_path):
+                QDesktopServices.openUrl(QUrl.fromLocalFile(dir_path))
+            else:
+                QMessageBox.warning(self, 'Warning', 'Output directory does not exist.')
 
     def update_log(self, message):
         self.log_output.append(message)
