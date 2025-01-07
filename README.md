@@ -32,6 +32,6 @@
 
 ## TODO
 
-- [x] Support for more file formats
+- [x] Support for more file formats (v1.1)
 - [ ] Selecting more than one transition  
 - [ ] Randomizing transitions
