@@ -29,3 +29,9 @@
 ![image](https://github.com/user-attachments/assets/fb2e86f7-7164-43ff-a2a4-081d13c05596)
 
 ![image](https://github.com/user-attachments/assets/bdeadbd4-03b9-414e-9483-64f9adfe926c)
+
+## TODO
+
+- [x] Supporting more formats
+- [ ] Selecting more than one transition  
+- [ ] Randomizing transitions
