@@ -11,8 +11,8 @@
 ## Features
 
 - Adjustable transition duration
-- Support for over 50 transition types
 - Visual preview of transition effects
+- Support for over 50 transition types
 - Option to use CPU or GPU for video processing
    
 ## Screenshots
