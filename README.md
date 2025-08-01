@@ -15,19 +15,9 @@
 - Visual preview of transition effects
 - Adjustable transition duration
 - Option to use CPU or GPU for video processing
-
-## Usage
-
-1. Click **Get FFmpeg** to download or Set the FFmpeg path if you already have it.
-2. Add video files to the list.
-3. Choose a transition type and set the duration.
-4. Specify the output file name and location.
-5. Click "Start (CPU)" or "Start (GPU)" to begin processing.
    
 ## Screenshots
 
-![image](https://github.com/user-attachments/assets/0b084fb5-b9a0-4dc8-aa0c-1f104848f38f)
+![image](https://github.com/user-attachments/assets/a85943ed-44b2-4bda-9e02-1da0562cc8ac)
 
-![image](https://github.com/user-attachments/assets/fb2e86f7-7164-43ff-a2a4-081d13c05596)
-
-![image](https://github.com/user-attachments/assets/bdeadbd4-03b9-414e-9483-64f9adfe926c)
+![image](https://github.com/user-attachments/assets/33b1c06d-ab52-4b65-935b-d2edaec9177c)
